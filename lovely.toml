@@ -1,0 +1,33 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 0
+
+# Encode at the actual save-thread boundary too: progress/settings messages
+# can include high scores from the live profile after the run snapshot exists.
+# Use a separate channel variable in the helper: Lovely may group patch types
+# rather than apply regex and pattern patches in their listed order.
+[[patches]]
+[patches.regex]
+target = "game.lua"
+pattern = 'G\.SAVE_MANAGER\.channel:push\('
+position = "at"
+payload = 'supereditions_push_save('
+
+[[patches]]
+[patches.pattern]
+target = "game.lua"
+pattern = 'Game = Object:extend()'
+position = "before"
+match_indent = true
+payload = '''
+local function supereditions_push_save(payload)
+    local mod = SMODS and SMODS.Mods and SMODS.Mods.SuperEditions
+    local numbers = mod and mod.supereditions_numbers
+    if numbers and numbers.available then
+        payload = numbers.encode_tree(payload)
+    end
+    local channel = G.SAVE_MANAGER.channel
+    return channel:push(payload)
+end
+'''
